@@ -1,24 +1,13 @@
-VS SMB Practise ROM
-===================
+VS. Super Mario Bros. Practise ROM
+==================================
 
-This patch adds a stage select, power-up and framerule selection to VS SMB.
+This patch adds a stage select with configuration options, practice information during gameplay, and keybinds for restarting the current stage or returning to the stage select.
 
-Get the latest version at https://github.com/threecreepio/smb1-practiserom-vssmb
+Forked from [threecreepio's VS SMB practise ROM](https://github.com/threecreepio/smb1-practiserom-vssmb).
 
-Known issues
-------------
+Patching
+--------
 
-Vs. SMB breaks the normal framerule rng patterns from SMB1.
+The easiest way to apply this patch is to use [ROM Patcher JS](https://www.marcrobledo.com/RomPatcher.js/).
 
-There's as far as I can tell effectively no way to map out framerule rng in the game.. So, you can still select rng in the practise rom, but note that it won't match up with the real game.
-
-Usage
------
-
-The easiest way to apply this patch is to go to https://www.romhacking.net/patch/
-
-Place the Super Mario Bros 1 rom in the "rom file", and the IPS from this archive into the "patch file" and press apply patch!
-
-You can of course use Lunar IPS or FLIPS if you'd prefer.
-
-/threecreepio
+Be sure to apply this patch to a VS. Super Mario Bros. ROM with the .nes file extension. The expected MD5 hash is `b4e90b95a3e18f2bd79bbecf5009a28b`.

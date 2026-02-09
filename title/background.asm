@@ -1,14 +1,3 @@
-.macro ASCII text
-$00
-.endmacro
-
-MenuBackground:
-.word BGDATA
-.word BGDATA+$100
-.word BGDATA+$200
-.word BGDATA+$300
-.word $0000
-
 BGDATA:
 .incbin "../scripts/graphics/menu.bin"
 
@@ -17,9 +6,9 @@ BGDATA:
 .byte $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF
 .byte $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF
 .byte $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF
-.byte $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF
+.byte $FF, $FF, $FF, $FF, $FF, $00, $00, $00
 .byte $00, $00, $00, $00, $00, $00, $00, $00
-.byte $00, $00, $00, $05, $05, $05, $00, $00
+.byte $00, $00, $04, $05, $05, $05, $00, $00
 .byte $00, $00, $00, $00, $00, $00, $00, $00
 
 MenuPalette:

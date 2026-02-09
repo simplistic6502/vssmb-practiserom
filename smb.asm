@@ -1327,6 +1327,7 @@ L8718:
         rts                                     ; 8747 60                       `
 
 ; ----------------------------------------------------------------------------
+L8748:
         lda     ScreenRoutineTask               ; 8748 AD 3C 07                 .<.
         jsr     JumpEngine                           ; 874B 20 BB 90                  ..
         .byte   $6C,$87
@@ -2129,7 +2130,7 @@ L8D0D:
         .byte   $17,$26,$05,$0F,$0A,$17,$18,$1D ; 8F95 17 26 05 0F 0A 17 18 1D  .&......
         .byte   $11,$0E,$1B,$24,$0C,$0A,$1C,$1D ; 8F9D 11 0E 1B 24 0C 0A 1C 1D  ...$....
         .byte   $15,$0E,$2B,$00,$23,$C0,$48,$55 ; 8FA5 15 0E 2B 00 23 C0 48 55  ..+.#.HU
-        .byte   $23,$C2,$01,$D5,$00,$3F,$00,$10 ; 8FAD 23 C2 01 D5 00 3F 00 10  #....?..
+        .byte   $23,$C4,$01,$D5,$00,$3F,$00,$10 ; 8FAD 23 C2 01 D5 00 3F 00 10  #....?..
         .byte   $0F,$0F,$0F,$0F,$0F,$30,$10,$00 ; 8FB5 0F 0F 0F 0F 0F 30 10 00  .....0..
         .byte   $0F,$21,$12,$02,$0F,$27,$17,$00 ; 8FBD 0F 21 12 02 0F 27 17 00  .!...'..
         .byte   $00,$24,$E8,$10,$1D,$11,$0A,$17 ; 8FC5 00 24 E8 10 1D 11 0A 17  .$......
@@ -2879,7 +2880,7 @@ L9630:
         .byte   $04,$30,$48,$60,$78,$90,$A8,$C0 ; 9630 04 30 48 60 78 90 A8 C0  .0H`x...
         .byte   $D8,$E8,$24,$F8,$FC,$28,$2C     ; 9638 D8 E8 24 F8 FC 28 2C     ..$..(,
 L963F:
-        .byte   $18,$FF,$23,$58                 ; 963F 18 FF 23 58              ..#X
+        .byte   $18,$FF,$23,$98                 ; 963F 18 FF 23 58              ..#X
 ; ----------------------------------------------------------------------------
 L9643:
         ldy     #$6F                            ; 9643 A0 6F                    .o
@@ -2907,7 +2908,8 @@ L9665:
         sta     FrameCounter                    ; 966B 85 09                    ..
         lda     L8190                           ; 966D AD 90 81                 ...
         sta     IntervalTimerControl            ; 9670 8D 7F 07                 ...
-        sta     PseudoRandomBitReg              ; 9673 8D A7 07                 ...
+        jsr     BANK_PractiseEnterStage
+        ;sta     PseudoRandomBitReg              ; 9673 8D A7 07                 ...
         lda     HalfwayPage                     ; 9676 AD 5B 07                 .[.
         ldy     AltEntranceControl              ; 9679 AC 52 07                 .R.
         beq     L9681                           ; 967C F0 03                    ..
@@ -3014,8 +3016,7 @@ L9747:
         dey                                     ; 974D 88                       .
         bpl     L9747                           ; 974E 10 F7                    ..
         jsr     LA18A                           ; 9750 20 8A A1                  ..
-        jsr BANK_PractiseEnterStage
-        ;jsr     LA185                           ; 9753 20 85 A1                  ..
+        jsr     LA185                           ; 9753 20 85 A1                  ..
         inc     Sprite0HitDetectFlag            ; 9756 EE 22 07                 .".
         inc     OperMode_Task                   ; 9759 EE 72 07                 .r.
         rts                                     ; 975C 60                       `
@@ -3211,19 +3212,27 @@ L98C1:
 OperMode_GameOverMode:
         lda     OperMode_Task                   ; 98CA AD 72 07                 .r.
         jsr     JumpEngine                           ; 98CD 20 BB 90                  ..
-        .byte   $0F,$A1,$48,$87,$02,$99,$DC,$98 ; 98D0 0F A1 48 87 02 99 DC 98  ..H.....
-        .byte   $F2,$98,$22,$A1                 ; 98D8 F2 98 22 A1              ..".
+        .word   LA10F
+        .word   L8748
+        .word   L9902
+        .word   BANK_PractiseReset
+        ;.word   L98DC
+        .word   L98F2
+        .word   LA122
 ; ----------------------------------------------------------------------------
+L98DC:
         lda     $6617                           ; 98DC AD 17 66                 ..f
         jsr     JumpEngine                           ; 98DF 20 BB 90                  ..
         .byte   $19,$99,$5D,$99,$20,$9A,$4E,$9A ; 98E2 19 99 5D 99 20 9A 4E 9A  ..]. .N.
         .byte   $38,$9B,$20,$9A,$3B,$95,$29,$9E ; 98EA 38 9B 20 9A 3B 95 29 9E  8. .;.).
 ; ----------------------------------------------------------------------------
+L98F2:
         lda     $6617                           ; 98F2 AD 17 66                 ..f
         jsr     JumpEngine                           ; 98F5 20 BB 90                  ..
         .byte   $19,$99,$20,$9A,$3B,$9F,$C1,$9F ; 98F8 19 99 20 9A 3B 9F C1 9F  .. .;...
         .byte   $1B,$A0                         ; 9900 1B A0                    ..
 ; ----------------------------------------------------------------------------
+L9902:
         lda     #$00                            ; 9902 A9 00                    ..
         sta     DisableScreenFlag               ; 9904 8D 74 07                 .t.
         lda     ScreenTimer                     ; 9907 AD A0 07                 ...
@@ -4246,6 +4255,7 @@ LA105:
         rts                                     ; A10E 60                       `
 
 ; ----------------------------------------------------------------------------
+LA10F:
         lda     #$00                            ; A10F A9 00                    ..
         sta     ScreenRoutineTask               ; A111 8D 3C 07                 .<.
         sta     Sprite0HitDetectFlag            ; A114 8D 22 07                 .".
@@ -4256,6 +4266,7 @@ LA105:
         rts                                     ; A121 60                       `
 
 ; ----------------------------------------------------------------------------
+LA122:
         jsr     LA15D                           ; A122 20 5D A1                  ].
         bcc     LA13F                           ; A125 90 18                    ..
         lda     $075A                           ; A127 AD 5A 07                 .Z.
@@ -16087,7 +16098,6 @@ LFFE6:
         .byte   $1A,$1A,$1C,$1D,$1D,$1E,$1E,$1F ; FFEE 1A 1A 1C 1D 1D 1E 1E 1F  ........
         .byte   $FF,$FF,$FF,$FF
 LFFFF:
-.segment "SMBVEC"
 .word NonMaskableInterrupt
 .word Boot
 .word IRQ
