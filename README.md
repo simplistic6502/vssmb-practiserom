@@ -5,6 +5,8 @@ This patch adds a stage select with configuration options, practice information 
 
 Forked from [threecreepio's VS SMB practise ROM](https://github.com/threecreepio/smb1-practiserom-vssmb).
 
+Included is a Python script to help with calculating RNG seeds. To use the script, run the script in a terminal.
+
 Patching
 --------
 

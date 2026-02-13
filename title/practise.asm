@@ -2,14 +2,17 @@
 ;  Start the game!
 ; ---------------------------------------------------------------------------
 TStartGame:
-    @FRDigits = (MathRNGDigitEnd-MathRNGDigitStart-1)
+    @RNGDigits = (MathInGameRNGIterationCountEnd-MathInGameRNGIterationCountStart-1)
     jsr InitBankSwitchingCode                    ; copy utility code to WRAM
-    ldx #@FRDigits                               ; set up rng digits
-@KeepCopying:                                    ;
-    lda MathRNGDigitStart, x                     ; copy each rng digit from the menu
-    sta MathInGameRNGDigitStart, x               ;
+    ldx #@RNGDigits                              ; reset rng iteraton count digits
+    lda #0                                       ;
+:   sta MathInGameRNGIterationCountStart, x      ;
     dex                                          ;
-    bpl @KeepCopying                             ;
+    bpl :-                                       ;
+    lda RNGDigitStart+1                          ; copy each rng digit from the menu
+    sta InGameRNGDigitStart+1                    ;
+    lda RNGDigitStart                            ;
+    sta InGameRNGDigitStart                      ;
     clc                                          ;
     lda #2                                       ; set starting opermode to "gamemode"
     sta OperMode                                 ;
@@ -40,8 +43,6 @@ TStartGame:
     sta $6603                                    ;
     lda #$2                                      ; give player 3 lives
     sta NumberofLives                            ;
-    lda #$4                                      ; set the interval timer to a hardcoded value
-    sta IntervalTimerControl                     ;
     inc FetchNewGameTimerFlag                    ; tell the game to reload the game timer
     jmp BANK_AdvanceToLevel                      ; transition to the wram code to start the game
 @StatusSizes:
@@ -59,9 +60,10 @@ PractiseNMI:
     rts                                          ; otherwise, we're loading, so just return
 @ClearPractisePrintScore:                        ;
     lda VRAM_Buffer1_Offset                      ; check if we have pending ppu draws
-    bne @CheckForLevelEnd                        ; yes - skip ahead
+    bne @IncrementIterationCounter               ; yes - skip ahead
     sta PendingScoreDrawPosition                 ; no - clear pending vram address for drawing
-@CheckForLevelEnd:                               ;
+@IncrementIterationCounter:                      ;
+    jsr IncrementIterationCounter                ; increment the base10 RNG iteration counter
     jsr CheckForLevelEnd                         ; run level transition handler
     jsr CheckJumpingState                        ; run jump handler
     jsr CheckAreaTimer                           ; run area transition timing handler
@@ -101,11 +103,18 @@ PractiseNMI:
 ;  Handle new area loading loading
 ; ---------------------------------------------------------------------------
 PractiseEnterStage:
-    @FRDigitCount = MathRNGDigitEnd - MathRNGDigitStart - 1
+    @RNGDigitCount = MathInGameRNGIterationCountEnd - MathInGameRNGIterationCountStart - 1
     lda #3                                       ; set life counter so we can't lose the game
     sta NumberofLives                            ;
     lda #$14                                     ; reset first byte of LFSR like normal
     sta PseudoRandomBitReg                       ;
+    ldx #@RNGDigitCount                          ; save rng iteration count to copy for display
+:   lda MathInGameRNGIterationCountStart,x       ; and reset rng iteration count since rng was reseeded
+    sta MathRNGIterationCountStart,x             ;
+    lda #0                                       ;
+    sta MathInGameRNGIterationCountStart,x       ;
+    dex                                          ;
+    bpl :-                                       ;
     lda EnteringFromMenu                         ; check if we're entering from the menu
     beq @SaveToMenu                              ; no, the player beat a level, update the menu state
     jsr RNGQuickResume                           ; yes, the player is starting a new game, load the rng state
@@ -115,11 +124,10 @@ PractiseEnterStage:
     jsr UpdateRNGValue                           ; copy the rng to stored digits
     lda LevelEnding                              ; check if we are transitioning to a new level
     beq @Shared                                  ; no - skip ahead and enter the game
-    ldx #@FRDigitCount                           ; yes - copy the rng to the menu
-:   lda MathInGameRNGDigitStart,x                ;
-    sta MathRNGDigitStart,x                      ;
-    dex                                          ;
-    bpl :-                                       ;
+    lda InGameRNGDigitStart+1                    ; yes - copy the rng to the menu
+    sta RNGDigitStart+1                          ;
+    lda InGameRNGDigitStart                      ;
+    sta RNGDigitStart                            ;
     lda WorldNumber                              ; copy current world and level to the menu
     sta SettablesWorld                           ;
     lda LevelNumber                              ;
@@ -135,6 +143,7 @@ PractiseEnterStage:
     lda #0                                       ; clear out some starting state
     sta CachedChangeAreaTimer                    ;
     sta LevelEnding                              ;
+    sta $00                                      ; needed for GetAreaDataAddrs
     jmp RedrawLowFreqStatusbar                   ; and update the status line
 @PUpStates:
 .byte $3                                         ; size = 0, status = 0. big vuln. mario
@@ -153,15 +162,12 @@ CheckForLevelEnd:
     lda LevelEnding                              ; have we already detected the level end?
     bne @Done                                    ; if so - exit
     lda WorldEndTimer                            ; check the end of world timer
-    bne @CacheIntervalTimer                      ; if set, branch ahead
+    bne @ChangeTopStatusTimeToRemains            ; if set, branch ahead
     lda StarFlagTaskControl                      ; check the current starflag state
     cmp #4                                       ; are we in the final starflag task?
     bne @Done                                    ; no - exit
-@CacheIntervalTimer:
-    lda IntervalTimerControl                     ; cache the current interval timer
-    sta CachedITC                                ;
-    clc                                          ;
-    jsr ChangeTopStatusXToRemains                ; change the 'X' in the title to 'R'
+@ChangeTopStatusTimeToRemains:
+    jsr ChangeTopStatusTimeToRemains             ; change the 'TIME' in the title to remains
     jsr RedrawLowFreqStatusbar                   ; and redraw the status bar
 @LevelEnding:
     inc LevelEnding                              ; yes - mark the level end as ended
@@ -178,11 +184,7 @@ CheckAreaTimer:
     lda ChangeAreaTimer                          ; no - check if we should handle it
     beq @Done                                    ; no - exit
     sta CachedChangeAreaTimer                    ; yes - cache the timer value
-    lda IntervalTimerControl                     ; get the interval timer
-@Store2:                                         ;
-    sta CachedITC                                ; and cache it as well
-    clc                                          ;
-    jsr ChangeTopStatusXToRemains                ; change the 'X' in the title to 'R'
+    jsr ChangeTopStatusTimeToRemains             ; change the 'TIME' in the title to remains
     jsr RedrawLowFreqStatusbar                   ; and redraw the status bar
 @Done:                                           ;
     rts                                          ;
@@ -204,18 +206,29 @@ CheckJumpingState:
 ;  Update rng value digits
 ; ---------------------------------------------------------------------------
 UpdateRNGValue:
-    @PRNGTemp = $0
+    @RNGTemp = $0
     lda PseudoRandomBitReg+1                     ; load second byte of LFSR
-    sta @PRNGTemp                                ;
+    sta @RNGTemp                                 ;
     lsr a                                        ; move high nybble to low
     lsr a                                        ;
     lsr a                                        ;
     lsr a                                        ;
-    sta MathInGameRNGDigitStart+1                ; and store high digit
-    lda @PRNGTemp                                ; mask out low nybble
+    sta InGameRNGDigitStart+1                    ; and store high digit
+    lda @RNGTemp                                 ; mask out low nybble
     and #%1111                                   ;
-    sta MathInGameRNGDigitStart                  ; and store low digit
+    sta InGameRNGDigitStart                      ; and store low digit
     rts                                          ;
+; ===========================================================================
+
+; ===========================================================================
+;  Advance to the next base 10 RNG iteration count
+; ---------------------------------------------------------------------------
+IncrementIterationCounter:
+    @DigitOffset = (MathInGameRNGIterationCountStart-MathDigits)
+    clc                                          ;
+    lda #1                                       ; we want to add 1 to the digits
+    ldx #@DigitOffset                            ; get the offset to the digit we are incrementing
+    jmp B10Add                                   ; and run base 10 addition
 ; ===========================================================================
 
 ; ===========================================================================
@@ -240,8 +253,8 @@ PractiseWriteTopStatusLine:
     inc ScreenRoutineTask                        ; and advance the screen routine task
     rts                                          ; done
 @TopStatusText:                                  ;
-  .byte $20, $43,  21, "PRNG x SOCKS TO FRAME"   ;
-  .byte $20, $59,   4, "TIME"                    ;
+  .byte $20, $43,  3, "RNG"                      ;
+  .byte $20, $4a,  19, "SOCKS TO FRAME TIME"     ;
   .byte $20, $73,   2, $2e, $29                  ; coin that shows next to the coin counter
   .byte $23, $c0, $7f, $aa                       ; tile attributes for the top row, sets palette
   .byte $23, $c4, $01, %11100000                 ; set palette for the flashing coin
@@ -253,34 +266,62 @@ PractiseWriteTopStatusLine:
 ;  Handle the game requesting redrawing the bottom status bar
 ; ---------------------------------------------------------------------------
 PractiseWriteBottomStatusLine:
-    lda LevelEnding                              ; are we transitioning to a new level?
-    bne :+                                       ; yes, don't update the itc value
-    lda IntervalTimerControl                     ; no, get the current interval timer
-    sta CachedITC                                ; and store it in the cached value
-:   jsr RedrawLowFreqStatusbar                   ; redraw the status bar
+    jsr RedrawLowFreqStatusbar                   ; redraw the status bar
+    jsr PrintRNGSeed                             ; display the current rng seed
     inc ScreenRoutineTask                        ; and advance to the next smb screen routine
     rts                                          ;
 ; ===========================================================================
 
 ; ===========================================================================
-;  Place an "R" instead of "x" in the title screen during level transitions
+;  Place the remains instead of "TIME" during level transitions
 ; ---------------------------------------------------------------------------
-ChangeTopStatusXToRemains:
+ChangeTopStatusTimeToRemains:
     clc                                          ;
     lda VRAM_Buffer1_Offset                      ; get current vram offset
     tay                                          ;
-    adc #4                                       ; and advance it by 4
+    adc #7                                       ; and advance it by 7
     sta VRAM_Buffer1_Offset                      ; store the new offset
     lda #$20                                     ; write the ppu address to update
     sta VRAM_Buffer1+0, y                        ;
-    lda #$48                                     ;
+    lda #$59                                     ;
     sta VRAM_Buffer1+1, y                        ;
-    lda #1                                       ; we are writing a single byte
+    lda #4                                       ; we are writing four bytes
     sta VRAM_Buffer1+2, y                        ;
-    lda #'R'                                     ; and that byte is an R
+    lda #'R'                                     ; "R" to indicate remains
     sta VRAM_Buffer1+3, y                        ;
-    lda #0                                       ; set the null terminator
+    lda #'x'                                     ; "x" between "R" and remains
     sta VRAM_Buffer1+4, y                        ;
+    lda IntervalTimerControl                     ; remains value in base10
+    jsr B10DivBy10                               ;
+    sta VRAM_Buffer1+6, y                        ;
+    txa                                          ;
+    sta VRAM_Buffer1+5, y                        ;
+    lda #0                                       ; set the null terminator
+    sta VRAM_Buffer1+7, y                        ;
+    rts                                          ; and finish
+; ===========================================================================
+
+; ===========================================================================
+;  Place the rng seed in the title screen during level transitions
+; ---------------------------------------------------------------------------
+PrintRNGSeed:
+    clc                                          ;
+    lda VRAM_Buffer1_Offset                      ; get current vram offset
+    tay                                          ;
+    adc #5                                       ; and advance it by 5
+    sta VRAM_Buffer1_Offset                      ; store the new offset
+    lda #$20                                     ; write the ppu address to update
+    sta VRAM_Buffer1+0, y                        ;
+    lda #$47                                     ;
+    sta VRAM_Buffer1+1, y                        ;
+    lda #2                                       ; we are writing two bytes
+    sta VRAM_Buffer1+2, y                        ;
+    lda InGameRNGDigitStart+1                    ; high nybble of RNG
+    sta VRAM_Buffer1+3, y                        ;
+    lda InGameRNGDigitStart                      ; then low nybble of RNG
+    sta VRAM_Buffer1+4, y                        ;
+    lda #0                                       ; set the null terminator
+    sta VRAM_Buffer1+7, y                        ;
     rts                                          ; and finish
 ; ===========================================================================
 
@@ -296,12 +337,12 @@ RedrawLowFreqStatusbar:
     iny                                          ;
     iny                                          ;
     sty PendingScoreDrawPosition                 ; and store it as our pending position
-    jsr @PrintRNG                                ; draw the current rng value
+    jsr @PrintIterationCount                     ; draw the current rng iteration count
     jsr @PrintFramecounter                       ; draw the current framecounter value
     ldx ObjectOffset                             ; load object offset, our caller might expect it to be unchanged
     rts                                          ; and exit
 @RefreshBufferX:                                 ;
-    jsr @PrintRNGDataAtY                         ; refresh pending rng value
+    jsr @PrintIterationDataAtY                   ; refresh pending rng iteration count
     tya                                          ; get the buffer offset we're drawing to
     adc #7                                       ; and shift over to the framecounter position
     tay                                          ;
@@ -309,13 +350,13 @@ RedrawLowFreqStatusbar:
     ldx ObjectOffset                             ; load object offset, our caller might expect it to be unchanged
     rts                                          ; and exit
 ; ---------------------------------------------------------------------------
-;  Copy current rng number to VRAM
+;  Copy current rng iteration count to VRAM
 ; ---------------------------------------------------------------------------
-@PrintRNG:
+@PrintIterationCount:
     lda VRAM_Buffer1_Offset                      ; get the current buffer offset
     tay                                          ;
-    adc #(3+4)                                   ; shift over based on length of the rng text
-    sta VRAM_Buffer1_Offset                      ; store the ppu location of the rng counter
+    adc #(3+4)                                   ; shift over based on length of the iteration text
+    sta VRAM_Buffer1_Offset                      ; store the ppu location of the iteration count
     lda #$20                                     ;
     sta VRAM_Buffer1,y                           ;
     lda #$65                                     ;
@@ -327,15 +368,15 @@ RedrawLowFreqStatusbar:
     iny                                          ;
     lda #0                                       ; place our null terminator
     sta VRAM_Buffer1+4,y                         ;
-    lda #$24                                     ; and write a space past the rng (masks out smb1 '0' after the score)
-    sta VRAM_Buffer1+2,y                         ;
-@PrintRNGDataAtY:
-    lda CachedITC                                ; get the interval timer for when we entered the room
-    sta VRAM_Buffer1+3,y                         ; and store it in the buffer
-    lda MathInGameRNGDigitStart+1                ; then copy the rng numbers into the buffer
+@PrintIterationDataAtY:
+    lda MathRNGIterationCountStart+3             ; then copy the iteration numbers into the buffer
     sta VRAM_Buffer1+0,y                         ;
-    lda MathInGameRNGDigitStart                  ;
+    lda MathRNGIterationCountStart+2             ;
     sta VRAM_Buffer1+1,y                         ;
+    lda MathRNGIterationCountStart+1             ;
+    sta VRAM_Buffer1+2,y                         ;
+    lda MathRNGIterationCountStart+0             ;
+    sta VRAM_Buffer1+3,y                         ;
     rts                                          ;
 ; ---------------------------------------------------------------------------
 ;  Copy current frame number to VRAM

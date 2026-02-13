@@ -20,7 +20,7 @@ MenuTitles:
 .byte "LEVEL   "
 .byte "P-UP    "
 .byte "TIMER   "
-.byte "PRNG    "
+.byte "RNG     "
 
 ; ppu position to draw each title
 .define MenuTitleLocations \
@@ -266,7 +266,7 @@ UpdateValueRNG:
     sta MenuSelectedSubitem           ; and update selected digit
     rts                               ; done - exit
 @update_value:
-    ldy MathRNGDigitStart,x           ; get the digit we're changing
+    ldy RNGDigitStart,x               ; get the digit we're changing
     lda PressedButtons                ; and check inputs
     cmp #Up_Dir                       ; are we pressing up?
     beq @increase                     ; yes - increment digit
@@ -281,7 +281,7 @@ UpdateValueRNG:
     ldy #0                            ; yes - wrap back around to 0
 @store_value:
     tya                               ;
-    sta MathRNGDigitStart,x           ; and save the new digit
+    sta RNGDigitStart,x               ; and save the new digit
     rts                               ; exit!
 ; ===========================================================================
 
@@ -323,9 +323,9 @@ DrawValueRNG:
     sta VRAM_Buffer1+1, x             ;
     lda #2                            ; we're writing 2 numbers
     sta VRAM_Buffer1+2, x             ;
-    lda MathRNGDigitStart+0           ; copy both digits to vram buffer
+    lda RNGDigitStart+0               ; copy both digits to vram buffer
     sta VRAM_Buffer1+3+1, x           ;
-    lda MathRNGDigitStart+1           ;
+    lda RNGDigitStart+1               ;
     sta VRAM_Buffer1+3+0, x           ;
     lda #0                            ; and mark the end of the buffer
     sta VRAM_Buffer1+3+2, x           ;

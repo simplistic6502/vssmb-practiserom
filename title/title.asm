@@ -29,18 +29,24 @@ LevelEnding: .byte $00
 IsPlaying: .byte $00
 EnteringFromMenu: .byte $00
 PendingScoreDrawPosition: .byte $00
-CachedITC: .byte $00
+CachedITC: .byte $00 ; unused
 PREVIOUS_BANK: .byte $00
 
 ; Persistent WRAM space
 .segment "MENUWRAM"
-MathDigits:
-MathRNGDigitStart:
+RNGDigitStart:
   .byte $00, $00 ; selected rng
-MathRNGDigitEnd:
-MathInGameRNGDigitStart:
+RNGDigitEnd:
+InGameRNGDigitStart:
   .byte $00, $00 ; ingame rng
-MathInGameRNGDigitEnd:
+InGameRNGDigitEnd:
+MathDigits:
+MathRNGIterationCountStart:
+  .byte $00, $00, $00, $00
+MathRNGIterationCountEnd:
+MathInGameRNGIterationCountStart:
+  .byte $00, $00, $00, $00
+MathInGameRNGIterationCountEnd:
 
 ; $7E00-$7FFF - relocated bank switching code
 RelocatedCodeLocation = $7E00
@@ -55,9 +61,10 @@ TitleResetInner:
     stx PPU_CTRL_REG2                  ;
     jsr InitializeMemory               ; clear memory
     jsr ForceClearWRAM                 ; clear all wram state
-    lda #$F                            ; set starting rng
-    sta MathRNGDigitStart              ;
-    sta MathRNGDigitStart+1            ;
+    lda #$A                            ; set starting rng
+    sta RNGDigitStart                  ;
+    lda #$4                            ;
+    sta RNGDigitStart+1                ;
 :   lda PPU_STATUS                     ; wait for vblank
     bpl :-                             ;
 HotReset2:                             ;
