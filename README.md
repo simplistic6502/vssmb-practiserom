@@ -12,4 +12,4 @@ Patching
 
 The easiest way to apply this patch is to use [ROM Patcher JS](https://www.marcrobledo.com/RomPatcher.js/).
 
-Be sure to apply this patch to a VS. Super Mario Bros. ROM with the .nes file extension. The expected MD5 hash is `b4e90b95a3e18f2bd79bbecf5009a28b`.
+This patch is intended to be applied to `VS Super Mario Bros (VS) [a1].nes`, which has an expected MD5 hash of `e448025d8d332d431b6177b006441d65`. While this dump has incorrect timer speeds, the patch will restore the correct speeds.
